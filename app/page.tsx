@@ -246,4 +246,5 @@ export default function ControlTower() {
         </div>
       </div>
     </div>
-  );
+ );
+}
