@@ -103,8 +103,6 @@ export default function ControlTower() {
     const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
     return { day, weekDay: weekDays[dateObj.getDay()], dateStr, dayOfWeek: dateObj.getDay() };
   });
-
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = new Date(year, month, 1).getDay();
   const calendarGrid = [];
   for (let i = 0; i < firstDayOfMonth; i++) calendarGrid.push(null);
