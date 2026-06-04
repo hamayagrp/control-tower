@@ -90,9 +90,12 @@ export default function ControlTower() {
     );
   };
 
-  const year = currentDate.getFullYear();
+ const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   
+  // ★ ここに移動しました！先に日数を計算します
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
   const listDays = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
     const dateStr = `${year}/${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
