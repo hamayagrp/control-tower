@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, LayoutGrid, Calendar, Link as LinkIcon, Paperclip, MessageSquare } from 'lucide-react';
 
-// データの型定義
 type SheetData = {
   date: string;
   status: string;
@@ -12,18 +11,19 @@ type SheetData = {
 };
 
 export default function ControlTower() {
-  // 3社分のデータ保存箱を用意
   const [hasegawaData, setHasegawaData] = useState<Record<string, SheetData>>({});
   const [demo2Data, setDemo2Data] = useState<Record<string, SheetData>>({});
   const [demo3Data, setDemo3Data] = useState<Record<string, SheetData>>({});
   const [loading, setLoading] = useState(true);
 
-  // データを綺麗に整形する専用ロボット関数
+  // 🌟 新しく追加した魔法（状態管理）
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 5, 1)); // 現在の表示月（初期値は2026年6月）
+  const [activeView, setActiveView] = useState('all'); // 現在の表示モード（'all', 'hasegawa', 'demo2', 'demo3'）
+
   const formatSheetData = (rows: any[]) => {
     const formatted: Record<string, SheetData> = {};
     if (!rows || rows.length === 0) return formatted;
     
-    // 1行目（ヘッダー）を飛ばしてデータを保存
     rows.slice(1).forEach((row: string[]) => {
       const [date, status, note, fileUrl, dandoriUrl] = row;
       if (date) {
@@ -39,7 +39,6 @@ export default function ControlTower() {
     return formatted;
   };
 
-  // 裏側のパイプ（API）からデータを吸い上げる処理
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -47,7 +46,6 @@ export default function ControlTower() {
         const json = await res.json();
         
         if (json) {
-          // 3社それぞれの箱にデータを流し込む
           setHasegawaData(formatSheetData(json.hasegawa));
           setDemo2Data(formatSheetData(json.demo2));
           setDemo3Data(formatSheetData(json.demo3));
@@ -61,22 +59,31 @@ export default function ControlTower() {
     fetchData();
   }, []);
 
-  // カレンダーの日付生成 (2026年6月)
-  const daysInMonth = 30;
+  // 🌟 月を切り替えるボタンの処理
+  const handlePrevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  // 🌟 表示中の月に合わせてカレンダーの日付を自動生成する処理
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate(); // その月が何日まであるか自動計算
+
   const calendarDays = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
-    const dateStr = `2026/06/${day.toString().padStart(2, '0')}`;
-    const dateObj = new Date(2026, 5, day);
+    // YYYY/MM/DD 形式にする（例: 2026/06/01）
+    const dateStr = `${year}/${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
+    const dateObj = new Date(year, month, day);
     const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
     const weekDay = weekDays[dateObj.getDay()];
     return { day, weekDay, dateStr };
   });
 
-  // セルの中身を作る専用コンポーネント（3社で使い回してコードをスッキリさせます）
   const renderCell = (data: SheetData, isLoading: boolean, defaultTextColor: string) => {
-    if (isLoading) {
-      return <span className="text-slate-500 animate-pulse">読込中...</span>;
-    }
+    if (isLoading) return <span className="text-slate-500 animate-pulse">読込中...</span>;
     const statusText = data?.status || "-";
     return (
       <>
@@ -94,27 +101,44 @@ export default function ControlTower() {
     );
   };
 
+  // 🌟 表示モードによって列の数（4列か2列か）を変える
+  const gridColsClass = activeView === 'all' ? 'grid-cols-4' : 'grid-cols-2';
+
   return (
     <div className="min-h-screen bg-[#0B1120] text-slate-300 p-4 md:p-8 font-sans">
       
       {/* ヘッダー部分 */}
-      <div className="max-w-7xl mx-auto mb-8 bg-[#151E32] rounded-xl p-4 flex items-center justify-between shadow-lg border border-slate-800">
+      <div className="max-w-7xl mx-auto mb-8 bg-[#151E32] rounded-xl p-4 flex flex-col md:flex-row items-center justify-between shadow-lg border border-slate-800 gap-4">
+        
+        {/* 年月切り替えボタン */}
         <div className="flex items-center gap-4 bg-[#0B1120] px-4 py-2 rounded-lg border border-slate-700">
-          <button className="p-1 hover:text-white transition-colors"><ChevronLeft size={20} /></button>
-          <span className="text-white font-bold text-lg min-w-[100px] text-center">2026年 6月</span>
-          <button className="p-1 hover:text-white transition-colors"><ChevronRight size={20} /></button>
+          <button onClick={handlePrevMonth} className="p-1 hover:text-white transition-colors"><ChevronLeft size={20} /></button>
+          <span className="text-white font-bold text-lg min-w-[120px] text-center">
+            {year}年 {month + 1}月
+          </span>
+          <button onClick={handleNextMonth} className="p-1 hover:text-white transition-colors"><ChevronRight size={20} /></button>
         </div>
-        <div className="flex gap-2">
-          <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+        
+        {/* タブ切り替えボタン（選択されているものは青く光るように変更！） */}
+        <div className="flex flex-wrap justify-center gap-2">
+          <button 
+            onClick={() => setActiveView('all')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${activeView === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-[#1E293B] text-slate-300 border-slate-700 hover:bg-slate-700'}`}>
             <LayoutGrid size={16} /> 全体マトリクス
           </button>
-          <button className="flex items-center gap-2 bg-[#1E293B] hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-700">
+          <button 
+            onClick={() => setActiveView('hasegawa')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${activeView === 'hasegawa' ? 'bg-blue-600 text-white border-blue-600' : 'bg-[#1E293B] text-slate-300 border-slate-700 hover:bg-slate-700'}`}>
             <Calendar size={16} /> 長谷川ガラス
           </button>
-          <button className="flex items-center gap-2 bg-[#1E293B] hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-700">
+          <button 
+            onClick={() => setActiveView('demo2')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${activeView === 'demo2' ? 'bg-blue-600 text-white border-blue-600' : 'bg-[#1E293B] text-slate-300 border-slate-700 hover:bg-slate-700'}`}>
             <Calendar size={16} /> デモ②
           </button>
-          <button className="flex items-center gap-2 bg-[#1E293B] hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-700">
+          <button 
+            onClick={() => setActiveView('demo3')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${activeView === 'demo3' ? 'bg-blue-600 text-white border-blue-600' : 'bg-[#1E293B] text-slate-300 border-slate-700 hover:bg-slate-700'}`}>
             <Calendar size={16} /> デモ③
           </button>
         </div>
@@ -122,22 +146,25 @@ export default function ControlTower() {
 
       {/* カレンダーテーブル */}
       <div className="max-w-7xl mx-auto bg-[#151E32] rounded-xl shadow-2xl border border-slate-800 overflow-hidden">
-        <div className="grid grid-cols-4 border-b border-slate-700/50 bg-[#0F172A]">
+        
+        {/* テーブル見出し（タブの選択に合わせて出し分ける） */}
+        <div className={`grid ${gridColsClass} border-b border-slate-700/50 bg-[#0F172A]`}>
           <div className="p-4 font-bold text-center text-slate-400 border-r border-slate-700/50">日付</div>
-          <div className="p-4 font-bold text-center text-blue-400 border-r border-slate-700/50">長谷川ガラス</div>
-          <div className="p-4 font-bold text-center text-emerald-400 border-r border-slate-700/50">デモ②</div>
-          <div className="p-4 font-bold text-center text-amber-400">デモ③</div>
+          {(activeView === 'all' || activeView === 'hasegawa') && <div className={`p-4 font-bold text-center text-blue-400 ${activeView === 'all' ? 'border-r border-slate-700/50' : ''}`}>長谷川ガラス</div>}
+          {(activeView === 'all' || activeView === 'demo2') && <div className={`p-4 font-bold text-center text-emerald-400 ${activeView === 'all' ? 'border-r border-slate-700/50' : ''}`}>デモ②</div>}
+          {(activeView === 'all' || activeView === 'demo3') && <div className="p-4 font-bold text-center text-amber-400">デモ③</div>}
         </div>
 
+        {/* テーブル本体 */}
         <div className="divide-y divide-slate-700/50">
           {calendarDays.map(({ day, weekDay, dateStr }) => {
-            // 各社の日付データを取得
             const hgData = hasegawaData[dateStr];
             const d2Data = demo2Data[dateStr];
             const d3Data = demo3Data[dateStr];
 
             return (
-              <div key={day} className="grid grid-cols-4 hover:bg-[#1E293B] transition-colors group">
+              <div key={day} className={`grid ${gridColsClass} hover:bg-[#1E293B] transition-colors group`}>
+                
                 {/* 日付セル */}
                 <div className={`p-3 border-r border-slate-700/50 flex flex-col items-center justify-center
                   ${weekDay === '日' ? 'text-rose-400' : weekDay === '土' ? 'text-blue-400' : 'text-slate-300'}`}>
@@ -146,19 +173,25 @@ export default function ControlTower() {
                 </div>
 
                 {/* 長谷川ガラス セル */}
-                <div className="p-3 border-r border-slate-700/50 flex flex-col items-center justify-center relative min-h-[60px]">
-                  {renderCell(hgData, loading, 'text-white')}
-                </div>
+                {(activeView === 'all' || activeView === 'hasegawa') && (
+                  <div className={`p-3 flex flex-col items-center justify-center relative min-h-[60px] ${activeView === 'all' ? 'border-r border-slate-700/50' : ''}`}>
+                    {renderCell(hgData, loading, 'text-white')}
+                  </div>
+                )}
 
                 {/* デモ② セル */}
-                <div className="p-3 border-r border-slate-700/50 flex flex-col items-center justify-center relative min-h-[60px]">
-                  {renderCell(d2Data, loading, 'text-emerald-100')}
-                </div>
+                {(activeView === 'all' || activeView === 'demo2') && (
+                  <div className={`p-3 flex flex-col items-center justify-center relative min-h-[60px] ${activeView === 'all' ? 'border-r border-slate-700/50' : ''}`}>
+                    {renderCell(d2Data, loading, 'text-emerald-100')}
+                  </div>
+                )}
 
                 {/* デモ③ セル */}
-                <div className="p-3 flex flex-col items-center justify-center relative min-h-[60px]">
-                  {renderCell(d3Data, loading, 'text-amber-100')}
-                </div>
+                {(activeView === 'all' || activeView === 'demo3') && (
+                  <div className="p-3 flex flex-col items-center justify-center relative min-h-[60px]">
+                    {renderCell(d3Data, loading, 'text-amber-100')}
+                  </div>
+                )}
               </div>
             );
           })}
