@@ -244,7 +244,7 @@ export default function ControlTowerPage() {
                     {/* 💡 マス上部のアイコン群（ダンドリURLがあれば表示） */}
                     {data && (
                       <div className="flex items-center gap-1 mt-0.5">
-                        {data.dandoriUrl && <LinkIcon size={12} className="text-cyan-400" title="ダンドリワーク登録済" />}
+                       {data.dandoriUrl && <span title="ダンドリワーク登録済"><LinkIcon size={12} className="text-cyan-400" /></span>}
                         {data.fileUrl && <Paperclip size={12} className="text-slate-400" />}
                         {data.note && <MessageSquare size={12} className="text-slate-400" />}
                       </div>
