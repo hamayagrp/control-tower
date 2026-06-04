@@ -90,12 +90,11 @@ export default function ControlTower() {
     );
   };
 
- const year = currentDate.getFullYear();
+  const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   
-  // ★ ここに移動しました！先に日数を計算します
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-
+  
   const listDays = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
     const dateStr = `${year}/${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
@@ -103,6 +102,7 @@ export default function ControlTower() {
     const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
     return { day, weekDay: weekDays[dateObj.getDay()], dateStr, dayOfWeek: dateObj.getDay() };
   });
+
   const firstDayOfMonth = new Date(year, month, 1).getDay();
   const calendarGrid = [];
   for (let i = 0; i < firstDayOfMonth; i++) calendarGrid.push(null);
@@ -116,27 +116,24 @@ export default function ControlTower() {
     return 'text-slate-700';
   };
 
-  // 🌟 カレンダー表示用のセル（アイコンをクリックできるように修正！）
   const renderCompactCell = (label: string, data: SheetData | undefined, colorClass: string, isLoading: boolean) => {
     if (isLoading) return null;
     const statusText = data?.status || "-";
     const isBlank = statusText === '-';
 
     return (
-      <div className={`flex items-center gap-1.5 w-full text-xs mb-1 p-1 rounded-md transition-colors ${isBlank ? 'opacity-50 hover:opacity-100' : 'bg-white shadow-sm border border-slate-100'}`}>
+      <div className={`flex items-center gap-1.5 w-full text-xs mb-1 p-1 rounded-md transition-colors ${isBlank ? 'opacity-50 hover:opacity-100' : 'bg-white shadow-sm border border-slate-300'}`}>
         <span className={`font-bold shrink-0 ${colorClass}`}>[{label}]</span>
         <span className={`font-bold truncate ${isBlank ? 'text-slate-400 font-normal' : 'text-slate-700'}`}>
           {statusText}
         </span>
         {(data?.dandoriUrl || data?.fileUrl || data?.note) && (
           <div className="flex shrink-0 gap-1.5 ml-auto items-center">
-            {/* 🔗 ダンドリワークリンク */}
             {data.dandoriUrl && (
               <a href={data.dandoriUrl} target="_blank" rel="noopener noreferrer" title="ダンドリワークを開く" className="hover:scale-125 hover:text-blue-700 transition-transform">
                 <LinkIcon size={12} className="text-blue-500" />
               </a>
             )}
-            {/* 📎 添付ファイルリンク */}
             {data.fileUrl && (
               <a href={data.fileUrl} target="_blank" rel="noopener noreferrer" title="添付ファイルを開く" className="hover:scale-125 hover:text-slate-600 transition-transform">
                 <Paperclip size={12} className="text-slate-400" />
@@ -149,7 +146,6 @@ export default function ControlTower() {
     );
   };
 
-  // 🌟 マトリクス（リスト）表示用のセル（アイコンをクリックできるように修正！）
   const renderMatrixCell = (data: SheetData | undefined, isLoading: boolean) => {
     if (isLoading) return <span className="text-slate-400 text-sm animate-pulse">読込中...</span>;
     if (!data) return <span className="text-slate-300">-</span>;
@@ -160,13 +156,11 @@ export default function ControlTower() {
         </span>
         {(data.dandoriUrl || data.fileUrl || data.note) && (
           <div className="flex flex-wrap justify-center items-center gap-2 mt-1.5">
-            {/* 🔗 ダンドリワークリンク */}
             {data.dandoriUrl && (
               <a href={data.dandoriUrl} target="_blank" rel="noopener noreferrer" title="ダンドリワークを開く" className="hover:scale-125 hover:text-blue-700 transition-transform p-0.5">
                 <LinkIcon size={16} className="text-blue-500" />
               </a>
             )}
-            {/* 📎 添付ファイルリンク */}
             {data.fileUrl && (
               <a href={data.fileUrl} target="_blank" rel="noopener noreferrer" title="添付ファイルを開く" className="hover:scale-125 hover:text-slate-700 transition-transform p-0.5">
                 <Paperclip size={16} className="text-slate-500" />
@@ -182,15 +176,15 @@ export default function ControlTower() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans text-slate-800">
-        <div className="max-w-md w-full bg-white rounded-2xl p-8 shadow-xl border border-slate-200 text-center">
-          <div className="w-16 h-16 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+        <div className="max-w-md w-full bg-white rounded-2xl p-8 shadow-xl border border-slate-300 text-center">
+          <div className="w-16 h-16 bg-blue-50 border border-blue-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Lock size={28} className="text-blue-600" />
           </div>
           <h1 className="text-xl font-bold text-slate-800 mb-2">協力会社アプリスケジュール用</h1>
           <p className="text-sm text-slate-500 mb-6">関係者限定ページです。合言葉を入力してください。</p>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <input type="password" placeholder="パスワードを入力" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} className={`w-full bg-white border ${passwordError ? 'border-rose-300 focus:ring-rose-200' : 'border-slate-300 focus:ring-blue-100'} rounded-xl px-4 py-3 text-slate-800 text-center focus:outline-none focus:ring-4 placeholder-slate-400 transition-all`} />
+              <input type="password" placeholder="パスワードを入力" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} className={`w-full bg-white border ${passwordError ? 'border-rose-400 focus:ring-rose-300' : 'border-slate-300 focus:ring-blue-200'} rounded-xl px-4 py-3 text-slate-800 text-center focus:outline-none focus:ring-4 placeholder-slate-400 transition-all`} />
               {passwordError && <p className="text-rose-500 text-xs text-left mt-2 pl-1">※ パスワードが正しくありません。</p>}
             </div>
             <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-colors shadow-md shadow-blue-600/20">ログイン</button>
@@ -202,51 +196,53 @@ export default function ControlTower() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 p-4 md:p-8 font-sans">
-      <div className="max-w-7xl mx-auto mb-6 bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col gap-5">
+      <div className="max-w-7xl mx-auto mb-6 bg-white rounded-xl p-5 shadow-sm border border-slate-300 flex flex-col gap-5">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4 bg-slate-50 px-4 py-2 rounded-lg border border-slate-200">
+          <div className="flex items-center gap-4 bg-slate-50 px-4 py-2 rounded-lg border border-slate-300">
             <button onClick={handlePrevMonth} className="p-1 text-slate-500 hover:text-blue-600 transition-colors"><ChevronLeft size={20} /></button>
             <span className="text-slate-800 font-bold text-lg min-w-[120px] text-center">{year}年 {month + 1}月</span>
             <button onClick={handleNextMonth} className="p-1 text-slate-500 hover:text-blue-600 transition-colors"><ChevronRight size={20} /></button>
           </div>
-          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
-            <button onClick={() => setViewMode('calendar')} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'calendar' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-300">
+            <button onClick={() => setViewMode('calendar')} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'calendar' ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700 border border-transparent'}`}>
               <Calendar size={16} /> カレンダー
             </button>
-            <button onClick={() => setViewMode('matrix')} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'matrix' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+            <button onClick={() => setViewMode('matrix')} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'matrix' ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700 border border-transparent'}`}>
               <LayoutGrid size={16} /> マトリクス
             </button>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
+        <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
           <span className="text-sm font-bold text-slate-500">表示する企業:</span>
-          <button onClick={() => toggleCompany('hasegawa')} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all border ${selectedCompanies.includes('hasegawa') ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-50'}`}>
+          <button onClick={() => toggleCompany('hasegawa')} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all border ${selectedCompanies.includes('hasegawa') ? 'bg-blue-50 text-blue-600 border-blue-300' : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-50'}`}>
             {selectedCompanies.includes('hasegawa') && <Check size={14} />} 長谷川ガラス
           </button>
-          <button onClick={() => toggleCompany('demo2')} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all border ${selectedCompanies.includes('demo2') ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-50'}`}>
+          <button onClick={() => toggleCompany('demo2')} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all border ${selectedCompanies.includes('demo2') ? 'bg-emerald-50 text-emerald-600 border-emerald-300' : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-50'}`}>
             {selectedCompanies.includes('demo2') && <Check size={14} />} デモ②
           </button>
-          <button onClick={() => toggleCompany('demo3')} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all border ${selectedCompanies.includes('demo3') ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-50'}`}>
+          <button onClick={() => toggleCompany('demo3')} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all border ${selectedCompanies.includes('demo3') ? 'bg-amber-50 text-amber-600 border-amber-300' : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-50'}`}>
             {selectedCompanies.includes('demo3') && <Check size={14} />} デモ③
           </button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-md border border-slate-300 overflow-hidden">
         {viewMode === 'calendar' && (
           <div>
-            <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-100">
+            {/* カレンダー ヘッダーの罫線を濃く */}
+            <div className="grid grid-cols-7 border-b border-slate-300 bg-slate-100">
               {['日', '月', '火', '水', '木', '金', '土'].map((day, i) => (
-                <div key={day} className={`p-3 font-bold text-center text-sm border-r border-slate-200 last:border-0 ${i === 0 ? 'text-rose-500' : i === 6 ? 'text-blue-500' : 'text-slate-600'}`}>{day}</div>
+                <div key={day} className={`p-3 font-bold text-center text-sm border-r border-slate-300 last:border-0 ${i === 0 ? 'text-rose-500' : i === 6 ? 'text-blue-500' : 'text-slate-600'}`}>{day}</div>
               ))}
             </div>
-            <div className="grid grid-cols-7 border-b border-slate-100">
+            {/* カレンダー マス目の罫線を濃く */}
+            <div className="grid grid-cols-7 border-b border-slate-300">
               {calendarGrid.map((day, index) => {
-                if (!day) return <div key={`empty-${index}`} className="min-h-[140px] bg-slate-50 border-r border-b border-slate-100"></div>;
+                if (!day) return <div key={`empty-${index}`} className="min-h-[140px] bg-slate-50 border-r border-b border-slate-300"></div>;
                 const dateStr = `${year}/${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
                 const dayOfWeek = index % 7;
                 return (
-                  <div key={day} className="min-h-[140px] p-1.5 border-r border-b border-slate-100 flex flex-col group hover:bg-slate-50 transition-colors">
+                  <div key={day} className="min-h-[140px] p-1.5 border-r border-b border-slate-300 flex flex-col group hover:bg-slate-50 transition-colors">
                     <div className={`text-right text-xs font-bold mb-2 pr-1 ${getDayColor(dayOfWeek)}`}>{day}</div>
                     <div className="flex-grow flex flex-col w-full gap-1 overflow-hidden">
                       {loading && <div className="text-slate-400 text-xs pl-1">読込中...</div>}
@@ -259,32 +255,3 @@ export default function ControlTower() {
               })}
             </div>
           </div>
-        )}
-
-        {viewMode === 'matrix' && (
-          <div>
-            <div style={{ display: 'grid', gridTemplateColumns: `80px repeat(${Math.max(1, selectedCompanies.length)}, minmax(0, 1fr))` }} className="border-b border-slate-200 bg-slate-100">
-              <div className="p-4 font-bold text-center text-slate-600 border-r border-slate-200">日付</div>
-              {selectedCompanies.includes('hasegawa') && <div className="p-4 font-bold text-center text-blue-600 border-r border-slate-200">長谷川ガラス</div>}
-              {selectedCompanies.includes('demo2') && <div className="p-4 font-bold text-center text-emerald-600 border-r border-slate-200">デモ②</div>}
-              {selectedCompanies.includes('demo3') && <div className="p-4 font-bold text-center text-amber-400">デモ③</div>}
-            </div>
-            <div className="divide-y divide-slate-100">
-              {listDays.map(({ day, weekDay, dateStr, dayOfWeek }) => (
-                <div key={day} style={{ display: 'grid', gridTemplateColumns: `80px repeat(${Math.max(1, selectedCompanies.length)}, minmax(0, 1fr))` }} className="hover:bg-blue-50/50 transition-colors">
-                  <div className={`p-3 border-r border-slate-100 flex flex-col items-center justify-center ${getDayColor(dayOfWeek)}`}>
-                    <span className="text-lg font-bold">{day}</span>
-                    <span className="text-xs font-bold">({weekDay})</span>
-                  </div>
-                  {selectedCompanies.includes('hasegawa') && <div className="p-3 border-r border-slate-100 flex flex-col items-center justify-center min-h-[60px]">{renderMatrixCell(hasegawaData[dateStr], loading)}</div>}
-                  {selectedCompanies.includes('demo2') && <div className="p-3 border-r border-slate-100 flex flex-col items-center justify-center min-h-[60px]">{renderMatrixCell(demo2Data[dateStr], loading)}</div>}
-                  {selectedCompanies.includes('demo3') && <div className="p-3 flex flex-col items-center justify-center min-h-[60px]">{renderMatrixCell(demo3Data[dateStr], loading)}</div>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
