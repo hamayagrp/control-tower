@@ -18,7 +18,6 @@ export default function ControlTower() {
 
   const [currentDate, setCurrentDate] = useState(new Date(2026, 5, 1));
   
-  // 🌟 進化した状態管理（表示モードと、選択中の企業リストを分ける）
   const [viewMode, setViewMode] = useState<'calendar' | 'matrix'>('calendar');
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>(['hasegawa']); 
 
@@ -83,20 +82,17 @@ export default function ControlTower() {
   const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
-  // 🌟 企業をクリックした時の選択/解除（トグル）処理
   const toggleCompany = (companyId: string) => {
     setSelectedCompanies(prev => 
       prev.includes(companyId) 
-        ? prev.filter(id => id !== companyId) // すでにあれば削除（選択解除）
-        : [...prev, companyId]                // なければ追加（選択）
+        ? prev.filter(id => id !== companyId) 
+        : [...prev, companyId]
     );
   };
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   
-  // 日付データの生成
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
   const listDays = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
     const dateStr = `${year}/${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
@@ -105,6 +101,7 @@ export default function ControlTower() {
     return { day, weekDay: weekDays[dateObj.getDay()], dateStr, dayOfWeek: dateObj.getDay() };
   });
 
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = new Date(year, month, 1).getDay();
   const calendarGrid = [];
   for (let i = 0; i < firstDayOfMonth; i++) calendarGrid.push(null);
@@ -118,11 +115,10 @@ export default function ControlTower() {
     return 'text-slate-700';
   };
 
-  // 🌟 複数企業をマス目に綺麗に収めるための専用部品
+  // 🌟 カレンダー表示用のセル（アイコンをクリックできるように修正！）
   const renderCompactCell = (label: string, data: SheetData | undefined, colorClass: string, isLoading: boolean) => {
     if (isLoading) return null;
     const statusText = data?.status || "-";
-    // ステータスが「-」の場合は、文字を薄くして主張を抑える
     const isBlank = statusText === '-';
 
     return (
@@ -132,17 +128,27 @@ export default function ControlTower() {
           {statusText}
         </span>
         {(data?.dandoriUrl || data?.fileUrl || data?.note) && (
-          <div className="flex shrink-0 gap-1 ml-auto">
-            {data.dandoriUrl && <LinkIcon size={12} className="text-blue-500" />}
-            {data.fileUrl && <Paperclip size={12} className="text-slate-400" />}
-            {data.note && <MessageSquare size={12} className="text-amber-500" />}
+          <div className="flex shrink-0 gap-1.5 ml-auto items-center">
+            {/* 🔗 ダンドリワークリンク */}
+            {data.dandoriUrl && (
+              <a href={data.dandoriUrl} target="_blank" rel="noopener noreferrer" title="ダンドリワークを開く" className="hover:scale-125 hover:text-blue-700 transition-transform">
+                <LinkIcon size={12} className="text-blue-500" />
+              </a>
+            )}
+            {/* 📎 添付ファイルリンク */}
+            {data.fileUrl && (
+              <a href={data.fileUrl} target="_blank" rel="noopener noreferrer" title="添付ファイルを開く" className="hover:scale-125 hover:text-slate-600 transition-transform">
+                <Paperclip size={12} className="text-slate-400" />
+              </a>
+            )}
+            {data.note && <span title={data.note}><MessageSquare size={12} className="text-amber-500" /></span>}
           </div>
         )}
       </div>
     );
   };
 
-  // マトリクス用のセル描画
+  // 🌟 マトリクス（リスト）表示用のセル（アイコンをクリックできるように修正！）
   const renderMatrixCell = (data: SheetData | undefined, isLoading: boolean) => {
     if (isLoading) return <span className="text-slate-400 text-sm animate-pulse">読込中...</span>;
     if (!data) return <span className="text-slate-300">-</span>;
@@ -152,9 +158,19 @@ export default function ControlTower() {
           {data.status !== '-' ? data.status : ''}
         </span>
         {(data.dandoriUrl || data.fileUrl || data.note) && (
-          <div className="flex flex-wrap justify-center items-center gap-1.5 mt-1.5">
-            {data.dandoriUrl && <span title="ダンドリワーク"><LinkIcon size={16} className="text-blue-500" /></span>}
-            {data.fileUrl && <span title="添付ファイル"><Paperclip size={16} className="text-slate-500" /></span>}
+          <div className="flex flex-wrap justify-center items-center gap-2 mt-1.5">
+            {/* 🔗 ダンドリワークリンク */}
+            {data.dandoriUrl && (
+              <a href={data.dandoriUrl} target="_blank" rel="noopener noreferrer" title="ダンドリワークを開く" className="hover:scale-125 hover:text-blue-700 transition-transform p-0.5">
+                <LinkIcon size={16} className="text-blue-500" />
+              </a>
+            )}
+            {/* 📎 添付ファイルリンク */}
+            {data.fileUrl && (
+              <a href={data.fileUrl} target="_blank" rel="noopener noreferrer" title="添付ファイルを開く" className="hover:scale-125 hover:text-slate-700 transition-transform p-0.5">
+                <Paperclip size={16} className="text-slate-500" />
+              </a>
+            )}
             {data.note && <span title={data.note}><MessageSquare size={16} className="text-amber-500" /></span>}
           </div>
         )}
@@ -165,7 +181,6 @@ export default function ControlTower() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans text-slate-800">
-        {/* ... (ログイン画面は変更なし) ... */}
         <div className="max-w-md w-full bg-white rounded-2xl p-8 shadow-xl border border-slate-200 text-center">
           <div className="w-16 h-16 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Lock size={28} className="text-blue-600" />
@@ -186,19 +201,13 @@ export default function ControlTower() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 p-4 md:p-8 font-sans">
-      
-      {/* 🌟 刷新された操作パネル */}
       <div className="max-w-7xl mx-auto mb-6 bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col gap-5">
-        
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          {/* 月めくり */}
           <div className="flex items-center gap-4 bg-slate-50 px-4 py-2 rounded-lg border border-slate-200">
             <button onClick={handlePrevMonth} className="p-1 text-slate-500 hover:text-blue-600 transition-colors"><ChevronLeft size={20} /></button>
             <span className="text-slate-800 font-bold text-lg min-w-[120px] text-center">{year}年 {month + 1}月</span>
             <button onClick={handleNextMonth} className="p-1 text-slate-500 hover:text-blue-600 transition-colors"><ChevronRight size={20} /></button>
           </div>
-          
-          {/* 表示モード切替（カレンダー or マトリクス） */}
           <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
             <button onClick={() => setViewMode('calendar')} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'calendar' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
               <Calendar size={16} /> カレンダー
@@ -208,32 +217,21 @@ export default function ControlTower() {
             </button>
           </div>
         </div>
-
-        {/* 🌟 複数選択（トグル）できる企業フィルターボタン */}
         <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
           <span className="text-sm font-bold text-slate-500">表示する企業:</span>
-          
           <button onClick={() => toggleCompany('hasegawa')} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all border ${selectedCompanies.includes('hasegawa') ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-50'}`}>
             {selectedCompanies.includes('hasegawa') && <Check size={14} />} 長谷川ガラス
           </button>
-          
           <button onClick={() => toggleCompany('demo2')} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all border ${selectedCompanies.includes('demo2') ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-50'}`}>
             {selectedCompanies.includes('demo2') && <Check size={14} />} デモ②
           </button>
-          
           <button onClick={() => toggleCompany('demo3')} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all border ${selectedCompanies.includes('demo3') ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-50'}`}>
             {selectedCompanies.includes('demo3') && <Check size={14} />} デモ③
           </button>
         </div>
-
       </div>
 
-      {/* メイン画面 */}
       <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        
-        {/* =========================================
-            カレンダー表示モード
-        ========================================= */}
         {viewMode === 'calendar' && (
           <div>
             <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-100">
@@ -250,7 +248,6 @@ export default function ControlTower() {
                   <div key={day} className="min-h-[140px] p-1.5 border-r border-b border-slate-100 flex flex-col group hover:bg-slate-50 transition-colors">
                     <div className={`text-right text-xs font-bold mb-2 pr-1 ${getDayColor(dayOfWeek)}`}>{day}</div>
                     <div className="flex-grow flex flex-col w-full gap-1 overflow-hidden">
-                      {/* 🌟 選択されている企業だけをマス目の中にスタックして表示 */}
                       {loading && <div className="text-slate-400 text-xs pl-1">読込中...</div>}
                       {!loading && selectedCompanies.includes('hasegawa') && renderCompactCell('長谷川', hasegawaData[dateStr], 'text-blue-600', loading)}
                       {!loading && selectedCompanies.includes('demo2') && renderCompactCell('デモ②', demo2Data[dateStr], 'text-emerald-600', loading)}
@@ -263,19 +260,14 @@ export default function ControlTower() {
           </div>
         )}
 
-        {/* =========================================
-            マトリクス表示モード
-        ========================================= */}
         {viewMode === 'matrix' && (
           <div>
-            {/* 選択された企業の数に合わせて列幅を自動調整する最強の機能 */}
             <div style={{ display: 'grid', gridTemplateColumns: `80px repeat(${Math.max(1, selectedCompanies.length)}, minmax(0, 1fr))` }} className="border-b border-slate-200 bg-slate-100">
               <div className="p-4 font-bold text-center text-slate-600 border-r border-slate-200">日付</div>
               {selectedCompanies.includes('hasegawa') && <div className="p-4 font-bold text-center text-blue-600 border-r border-slate-200">長谷川ガラス</div>}
               {selectedCompanies.includes('demo2') && <div className="p-4 font-bold text-center text-emerald-600 border-r border-slate-200">デモ②</div>}
-              {selectedCompanies.includes('demo3') && <div className="p-4 font-bold text-center text-amber-600">デモ③</div>}
+              {selectedCompanies.includes('demo3') && <div className="p-4 font-bold text-center text-amber-400">デモ③</div>}
             </div>
-            
             <div className="divide-y divide-slate-100">
               {listDays.map(({ day, weekDay, dateStr, dayOfWeek }) => (
                 <div key={day} style={{ display: 'grid', gridTemplateColumns: `80px repeat(${Math.max(1, selectedCompanies.length)}, minmax(0, 1fr))` }} className="hover:bg-blue-50/50 transition-colors">
@@ -291,7 +283,6 @@ export default function ControlTower() {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
