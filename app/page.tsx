@@ -229,13 +229,11 @@ export default function ControlTower() {
       <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-md border border-slate-300 overflow-hidden">
         {viewMode === 'calendar' && (
           <div>
-            {/* カレンダー ヘッダーの罫線を濃く */}
             <div className="grid grid-cols-7 border-b border-slate-300 bg-slate-100">
               {['日', '月', '火', '水', '木', '金', '土'].map((day, i) => (
                 <div key={day} className={`p-3 font-bold text-center text-sm border-r border-slate-300 last:border-0 ${i === 0 ? 'text-rose-500' : i === 6 ? 'text-blue-500' : 'text-slate-600'}`}>{day}</div>
               ))}
             </div>
-            {/* カレンダー マス目の罫線を濃く */}
             <div className="grid grid-cols-7 border-b border-slate-300">
               {calendarGrid.map((day, index) => {
                 if (!day) return <div key={`empty-${index}`} className="min-h-[140px] bg-slate-50 border-r border-b border-slate-300"></div>;
@@ -255,3 +253,32 @@ export default function ControlTower() {
               })}
             </div>
           </div>
+        )}
+
+        {viewMode === 'matrix' && (
+          <div>
+            <div style={{ display: 'grid', gridTemplateColumns: `80px repeat(${Math.max(1, selectedCompanies.length)}, minmax(0, 1fr))` }} className="border-b border-slate-300 bg-slate-100">
+              <div className="p-4 font-bold text-center text-slate-700 border-r border-slate-300">日付</div>
+              {selectedCompanies.includes('hasegawa') && <div className="p-4 font-bold text-center text-blue-600 border-r border-slate-300">長谷川ガラス</div>}
+              {selectedCompanies.includes('demo2') && <div className="p-4 font-bold text-center text-emerald-600 border-r border-slate-300">デモ②</div>}
+              {selectedCompanies.includes('demo3') && <div className="p-4 font-bold text-center text-amber-600">デモ③</div>}
+            </div>
+            <div className="divide-y divide-slate-300">
+              {listDays.map(({ day, weekDay, dateStr, dayOfWeek }) => (
+                <div key={day} style={{ display: 'grid', gridTemplateColumns: `80px repeat(${Math.max(1, selectedCompanies.length)}, minmax(0, 1fr))` }} className="hover:bg-blue-50/50 transition-colors">
+                  <div className={`p-3 border-r border-slate-300 flex flex-col items-center justify-center ${getDayColor(dayOfWeek)}`}>
+                    <span className="text-lg font-bold">{day}</span>
+                    <span className="text-xs font-bold">({weekDay})</span>
+                  </div>
+                  {selectedCompanies.includes('hasegawa') && <div className="p-3 border-r border-slate-300 flex flex-col items-center justify-center min-h-[60px]">{renderMatrixCell(hasegawaData[dateStr], loading)}</div>}
+                  {selectedCompanies.includes('demo2') && <div className="p-3 border-r border-slate-300 flex flex-col items-center justify-center min-h-[60px]">{renderMatrixCell(demo2Data[dateStr], loading)}</div>}
+                  {selectedCompanies.includes('demo3') && <div className="p-3 flex flex-col items-center justify-center min-h-[60px]">{renderMatrixCell(demo3Data[dateStr], loading)}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
