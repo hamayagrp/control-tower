@@ -28,7 +28,7 @@ export async function GET() {
     // ※もし実際のシート名が「シート1」ではない場合は、下の 'シート1!A:Z' を実際のシート名（例: 'Sheet1!A:Z'）に書き換えてください。
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'シート1!A:Z', 
+      range: 'シート1!A:Z',
     });
 
     return NextResponse.json({ data: response.data.values });
