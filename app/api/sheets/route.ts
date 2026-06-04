@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
-    // Windows環境やVercelでの改行コードのズレを自動修正します
     const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
     const spreadsheetId = process.env.SPREADSHEET_ID;
 
@@ -15,23 +14,28 @@ export async function GET() {
       );
     }
 
-    // Googleの認証をセットアップ
- const auth = new google.auth.JWT({
-  email: clientEmail,
-  key: privateKey,
-  scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-});
+    const auth = new google.auth.JWT({
+      email: clientEmail,
+      key: privateKey,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+    });
 
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // スプレッドシートからデータを取得（「シート1」のA列からZ列まで丸ごと読み込みます）
-    // ※もし実際のシート名が「シート1」ではない場合は、下の 'シート1!A:Z' を実際のシート名（例: 'Sheet1!A:Z'）に書き換えてください。
-    const response = await sheets.spreadsheets.values.get({
+    // 🌟 ここが進化！3つのシートのデータを「一括」で取得します
+    const response = await sheets.spreadsheets.values.batchGet({
       spreadsheetId,
-      range: 'シート1!A:Z',
+      ranges: ['シート1!A:Z', 'デモ❷!A:Z', 'デモ❸!A:Z'], // 黒丸のタブ名に完全一致させます
     });
 
-    return NextResponse.json({ data: response.data.values });
+    const valueRanges = response.data.valueRanges || [];
+
+    // 取得したデータを、それぞれの会社名に綺麗に分けてフロント（画面）へ送ります
+    return NextResponse.json({ 
+      hasegawa: valueRanges[0]?.values || [],
+      demo2: valueRanges[1]?.values || [],
+      demo3: valueRanges[2]?.values || [],
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -12,8 +12,32 @@ type SheetData = {
 };
 
 export default function ControlTower() {
+  // 3社分のデータ保存箱を用意
   const [hasegawaData, setHasegawaData] = useState<Record<string, SheetData>>({});
+  const [demo2Data, setDemo2Data] = useState<Record<string, SheetData>>({});
+  const [demo3Data, setDemo3Data] = useState<Record<string, SheetData>>({});
   const [loading, setLoading] = useState(true);
+
+  // データを綺麗に整形する専用ロボット関数
+  const formatSheetData = (rows: any[]) => {
+    const formatted: Record<string, SheetData> = {};
+    if (!rows || rows.length === 0) return formatted;
+    
+    // 1行目（ヘッダー）を飛ばしてデータを保存
+    rows.slice(1).forEach((row: string[]) => {
+      const [date, status, note, fileUrl, dandoriUrl] = row;
+      if (date) {
+        formatted[date] = {
+          date: date || "",
+          status: status || "-",
+          note: note || "",
+          fileUrl: fileUrl || "",
+          dandoriUrl: dandoriUrl || "",
+        };
+      }
+    });
+    return formatted;
+  };
 
   // 裏側のパイプ（API）からデータを吸い上げる処理
   useEffect(() => {
@@ -22,22 +46,11 @@ export default function ControlTower() {
         const res = await fetch('/api/sheets');
         const json = await res.json();
         
-        if (json.data) {
-          const formattedData: Record<string, SheetData> = {};
-          // スプレッドシートの1行目（ヘッダー）を飛ばしてデータを保存
-          json.data.slice(1).forEach((row: string[]) => {
-            const [date, status, note, fileUrl, dandoriUrl] = row;
-            if (date) {
-              formattedData[date] = {
-                date: date || "",
-                status: status || "-",
-                note: note || "",
-                fileUrl: fileUrl || "",
-                dandoriUrl: dandoriUrl || "",
-              };
-            }
-          });
-          setHasegawaData(formattedData);
+        if (json) {
+          // 3社それぞれの箱にデータを流し込む
+          setHasegawaData(formatSheetData(json.hasegawa));
+          setDemo2Data(formatSheetData(json.demo2));
+          setDemo3Data(formatSheetData(json.demo3));
         }
       } catch (error) {
         console.error("データ取得エラー:", error);
@@ -52,13 +65,34 @@ export default function ControlTower() {
   const daysInMonth = 30;
   const calendarDays = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
-    // スプレッドシートの YYYY/MM/DD 形式に合わせる
     const dateStr = `2026/06/${day.toString().padStart(2, '0')}`;
     const dateObj = new Date(2026, 5, day);
     const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
     const weekDay = weekDays[dateObj.getDay()];
     return { day, weekDay, dateStr };
   });
+
+  // セルの中身を作る専用コンポーネント（3社で使い回してコードをスッキリさせます）
+  const renderCell = (data: SheetData, isLoading: boolean, defaultTextColor: string) => {
+    if (isLoading) {
+      return <span className="text-slate-500 animate-pulse">読込中...</span>;
+    }
+    const statusText = data?.status || "-";
+    return (
+      <>
+        <span className={`text-sm font-medium ${statusText !== '-' ? defaultTextColor : 'text-slate-600'}`}>
+          {statusText}
+        </span>
+        {(data?.dandoriUrl || data?.fileUrl || data?.note) && (
+          <div className="flex items-center gap-1.5 mt-1">
+            {data.dandoriUrl && <span title="ダンドリワーク登録済"><LinkIcon size={14} className="text-cyan-400" /></span>}
+            {data.fileUrl && <span title="添付ファイルあり"><Paperclip size={14} className="text-slate-400" /></span>}
+            {data.note && <span title={data.note}><MessageSquare size={14} className="text-amber-400" /></span>}
+          </div>
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#0B1120] text-slate-300 p-4 md:p-8 font-sans">
@@ -97,9 +131,10 @@ export default function ControlTower() {
 
         <div className="divide-y divide-slate-700/50">
           {calendarDays.map(({ day, weekDay, dateStr }) => {
-            // スプレッドシートのデータから、この日付のデータを引っ張ってくる
+            // 各社の日付データを取得
             const hgData = hasegawaData[dateStr];
-            const statusText = hgData?.status || "-";
+            const d2Data = demo2Data[dateStr];
+            const d3Data = demo3Data[dateStr];
 
             return (
               <div key={day} className="grid grid-cols-4 hover:bg-[#1E293B] transition-colors group">
@@ -112,33 +147,17 @@ export default function ControlTower() {
 
                 {/* 長谷川ガラス セル */}
                 <div className="p-3 border-r border-slate-700/50 flex flex-col items-center justify-center relative min-h-[60px]">
-                  {loading ? (
-                    <span className="text-slate-500 animate-pulse">読込中...</span>
-                  ) : (
-                    <>
-                      <span className={`text-sm font-medium ${statusText !== '-' ? 'text-white' : 'text-slate-600'}`}>
-                        {statusText}
-                      </span>
-                      {/* 備考やURLがある場合のみアイコンを表示 */}
-                      {(hgData?.dandoriUrl || hgData?.fileUrl || hgData?.note) && (
-                        <div className="flex items-center gap-1.5 mt-1">
-                          {hgData.dandoriUrl && <span title="ダンドリワーク登録済"><LinkIcon size={14} className="text-cyan-400" /></span>}
-                          {hgData.fileUrl && <span title="添付ファイルあり"><Paperclip size={14} className="text-slate-400" /></span>}
-                          {hgData.note && <span title={hgData.note}><MessageSquare size={14} className="text-amber-400" /></span>}
-                        </div>
-                      )}
-                    </>
-                  )}
+                  {renderCell(hgData, loading, 'text-white')}
                 </div>
 
                 {/* デモ② セル */}
-                <div className="p-3 border-r border-slate-700/50 flex items-center justify-center">
-                  <span className="text-slate-600">-</span>
+                <div className="p-3 border-r border-slate-700/50 flex flex-col items-center justify-center relative min-h-[60px]">
+                  {renderCell(d2Data, loading, 'text-emerald-100')}
                 </div>
 
                 {/* デモ③ セル */}
-                <div className="p-3 flex items-center justify-center">
-                  <span className="text-slate-600">-</span>
+                <div className="p-3 flex flex-col items-center justify-center relative min-h-[60px]">
+                  {renderCell(d3Data, loading, 'text-amber-100')}
                 </div>
               </div>
             );
