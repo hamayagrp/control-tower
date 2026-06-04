@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, LayoutGrid, Calendar, Link as LinkIcon, Paperclip, MessageSquare } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, Calendar, Link as LinkIcon, Paperclip, MessageSquare, Lock } from 'lucide-react';
 
 type SheetData = {
   date: string;
@@ -16,9 +16,33 @@ export default function ControlTower() {
   const [demo3Data, setDemo3Data] = useState<Record<string, SheetData>>({});
   const [loading, setLoading] = useState(true);
 
-  // 🌟 新しく追加した魔法（状態管理）
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 5, 1)); // 現在の表示月（初期値は2026年6月）
-  const [activeView, setActiveView] = useState('all'); // 現在の表示モード（'all', 'hasegawa', 'demo2', 'demo3'）
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 5, 1));
+  const [activeView, setActiveView] = useState('all');
+
+  // 🔒 パスワード認証用の状態管理
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
+
+  // 画面が開いたときに、すでにパスワード入力済かチェック（記憶機能）
+  useEffect(() => {
+    const authStatus = localStorage.getItem('app_authenticated');
+    if (authStatus === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  // パスワードチェック処理
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput === 'Hamay@') {
+      localStorage.setItem('app_authenticated', 'true');
+      setIsAuthenticated(true);
+      setPasswordError(false);
+    } else {
+      setPasswordError(true);
+    }
+  };
 
   const formatSheetData = (rows: any[]) => {
     const formatted: Record<string, SheetData> = {};
@@ -40,6 +64,8 @@ export default function ControlTower() {
   };
 
   useEffect(() => {
+    if (!isAuthenticated) return; // 認証されるまではデータを読み込まない
+
     const fetchData = async () => {
       try {
         const res = await fetch('/api/sheets');
@@ -57,9 +83,8 @@ export default function ControlTower() {
       }
     };
     fetchData();
-  }, []);
+  }, [isAuthenticated]);
 
-  // 🌟 月を切り替えるボタンの処理
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
@@ -67,14 +92,12 @@ export default function ControlTower() {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
-  // 🌟 表示中の月に合わせてカレンダーの日付を自動生成する処理
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const daysInMonth = new Date(year, month + 1, 0).getDate(); // その月が何日まであるか自動計算
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const calendarDays = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
-    // YYYY/MM/DD 形式にする（例: 2026/06/01）
     const dateStr = `${year}/${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
     const dateObj = new Date(year, month, day);
     const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
@@ -101,16 +124,50 @@ export default function ControlTower() {
     );
   };
 
-  // 🌟 表示モードによって列の数（4列か2列か）を変える
+  // 🔒 まだパスワードが合致していない場合は、ログイン画面を表示
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#0B1120] flex items-center justify-center p-4 font-sans text-slate-300">
+        <div className="max-w-md w-full bg-[#151E32] rounded-2xl p-8 shadow-2xl border border-slate-800 text-center">
+          <div className="w-16 h-16 bg-blue-600/10 border border-blue-500/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Lock size={28} className="text-blue-500" />
+          </div>
+          <h1 className="text-xl font-bold text-white mb-2">協力会社アプリスケジュール用</h1>
+          <p className="text-sm text-slate-400 mb-6">関係者限定ページです。合言葉を入力してください。</p>
+          
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <input
+                type="password"
+                placeholder="パスワードを入力"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className={`w-full bg-[#0B1120] border ${passwordError ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-700 focus:ring-blue-500'} rounded-xl px-4 py-3 text-white text-center focus:outline-none focus:ring-2 placeholder-slate-600 transition-all`}
+              />
+              {passwordError && (
+                <p className="text-rose-400 text-xs text-left mt-2 pl-1">※ パスワードが正しくありません。</p>
+              )}
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-colors shadow-lg shadow-blue-600/20"
+            >
+              ログイン
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   const gridColsClass = activeView === 'all' ? 'grid-cols-4' : 'grid-cols-2';
 
+  // 🔓 認証済みの場合はいつものカレンダー画面を表示
   return (
     <div className="min-h-screen bg-[#0B1120] text-slate-300 p-4 md:p-8 font-sans">
       
       {/* ヘッダー部分 */}
       <div className="max-w-7xl mx-auto mb-8 bg-[#151E32] rounded-xl p-4 flex flex-col md:flex-row items-center justify-between shadow-lg border border-slate-800 gap-4">
-        
-        {/* 年月切り替えボタン */}
         <div className="flex items-center gap-4 bg-[#0B1120] px-4 py-2 rounded-lg border border-slate-700">
           <button onClick={handlePrevMonth} className="p-1 hover:text-white transition-colors"><ChevronLeft size={20} /></button>
           <span className="text-white font-bold text-lg min-w-[120px] text-center">
@@ -119,7 +176,6 @@ export default function ControlTower() {
           <button onClick={handleNextMonth} className="p-1 hover:text-white transition-colors"><ChevronRight size={20} /></button>
         </div>
         
-        {/* タブ切り替えボタン（選択されているものは青く光るように変更！） */}
         <div className="flex flex-wrap justify-center gap-2">
           <button 
             onClick={() => setActiveView('all')}
@@ -146,8 +202,6 @@ export default function ControlTower() {
 
       {/* カレンダーテーブル */}
       <div className="max-w-7xl mx-auto bg-[#151E32] rounded-xl shadow-2xl border border-slate-800 overflow-hidden">
-        
-        {/* テーブル見出し（タブの選択に合わせて出し分ける） */}
         <div className={`grid ${gridColsClass} border-b border-slate-700/50 bg-[#0F172A]`}>
           <div className="p-4 font-bold text-center text-slate-400 border-r border-slate-700/50">日付</div>
           {(activeView === 'all' || activeView === 'hasegawa') && <div className={`p-4 font-bold text-center text-blue-400 ${activeView === 'all' ? 'border-r border-slate-700/50' : ''}`}>長谷川ガラス</div>}
@@ -155,7 +209,6 @@ export default function ControlTower() {
           {(activeView === 'all' || activeView === 'demo3') && <div className="p-4 font-bold text-center text-amber-400">デモ③</div>}
         </div>
 
-        {/* テーブル本体 */}
         <div className="divide-y divide-slate-700/50">
           {calendarDays.map(({ day, weekDay, dateStr }) => {
             const hgData = hasegawaData[dateStr];
@@ -164,29 +217,24 @@ export default function ControlTower() {
 
             return (
               <div key={day} className={`grid ${gridColsClass} hover:bg-[#1E293B] transition-colors group`}>
-                
-                {/* 日付セル */}
                 <div className={`p-3 border-r border-slate-700/50 flex flex-col items-center justify-center
                   ${weekDay === '日' ? 'text-rose-400' : weekDay === '土' ? 'text-blue-400' : 'text-slate-300'}`}>
                   <span className="text-lg font-bold">{day}</span>
                   <span className="text-xs font-medium">({weekDay})</span>
                 </div>
 
-                {/* 長谷川ガラス セル */}
                 {(activeView === 'all' || activeView === 'hasegawa') && (
                   <div className={`p-3 flex flex-col items-center justify-center relative min-h-[60px] ${activeView === 'all' ? 'border-r border-slate-700/50' : ''}`}>
                     {renderCell(hgData, loading, 'text-white')}
                   </div>
                 )}
 
-                {/* デモ② セル */}
                 {(activeView === 'all' || activeView === 'demo2') && (
                   <div className={`p-3 flex flex-col items-center justify-center relative min-h-[60px] ${activeView === 'all' ? 'border-r border-slate-700/50' : ''}`}>
                     {renderCell(d2Data, loading, 'text-emerald-100')}
                   </div>
                 )}
 
-                {/* デモ③ セル */}
                 {(activeView === 'all' || activeView === 'demo3') && (
                   <div className="p-3 flex flex-col items-center justify-center relative min-h-[60px]">
                     {renderCell(d3Data, loading, 'text-amber-100')}
@@ -199,4 +247,3 @@ export default function ControlTower() {
       </div>
     </div>
   );
-}
