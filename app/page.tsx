@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, LayoutGrid, Calendar, Link as LinkIcon, Paperclip, MessageSquare, Lock, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, Calendar, Link as LinkIcon, Paperclip, MessageSquare, Lock, Check, X } from 'lucide-react';
 
 type SheetData = {
   date: string;
@@ -10,7 +10,7 @@ type SheetData = {
   dandoriUrl: string;
 };
 
-// 🌟 2026年の日本の祝日データ
+// 2026年の日本の祝日データ
 const HOLIDAYS_2026: Record<string, string> = {
   '2026/01/01': '元日',
   '2026/01/12': '成人の日',
@@ -32,7 +32,7 @@ const HOLIDAYS_2026: Record<string, string> = {
   '2026/11/23': '勤労感謝の日',
 };
 
-// 🌟 ステータス文字色の判定
+// ステータス文字色の判定
 const getStatusColorClass = (status: string) => {
   if (!status || status === '-') return 'text-slate-400 font-normal';
   if (status.includes('指定なし')) return 'text-blue-600 font-bold';
@@ -56,6 +56,13 @@ export default function ControlTower() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState(false);
+
+  // 🌟 ポップアップウィンドウ（詳細モーダル）用の状態管理
+  const [selectedEvent, setSelectedEvent] = useState<{
+    date: string;
+    company: string;
+    data: SheetData;
+  } | null>(null);
 
   useEffect(() => {
     const authStatus = localStorage.getItem('app_authenticated');
@@ -154,13 +161,22 @@ export default function ControlTower() {
     return 'bg-white';
   };
 
-  const renderCompactCell = (label: string, data: SheetData | undefined, colorClass: string, isLoading: boolean) => {
+  // 🌟 カレンダー表示用のセル（クリックでウィンドウを開く処理を追加）
+  const renderCompactCell = (label: string, data: SheetData | undefined, colorClass: string, isLoading: boolean, companyName: string, dateStr: string) => {
     if (isLoading) return null;
     const statusText = data?.status || "-";
     const isBlank = statusText === '-';
 
     return (
-      <div className={`flex items-center gap-1 w-full text-xs mb-1 p-1 rounded-md transition-colors ${isBlank ? 'opacity-50' : 'bg-white/80 shadow-sm border border-slate-300'}`}>
+      <div 
+        onClick={() => {
+          // 空白でなければポップアップを開く
+          if (!isBlank || data?.note || data?.dandoriUrl || data?.fileUrl) {
+            setSelectedEvent({ date: dateStr, company: companyName, data: data || { date: dateStr, status: '-', note: '', fileUrl: '', dandoriUrl: '' } });
+          }
+        }}
+        className={`flex items-center gap-1 w-full text-xs mb-1 p-1 rounded-md transition-all ${isBlank ? 'opacity-50' : 'bg-white/80 shadow-sm border border-slate-300 hover:border-blue-400 hover:shadow cursor-pointer'}`}
+      >
         <span className={`font-bold shrink-0 ${colorClass}`}>[{label}]</span>
         <span className={`truncate ${getStatusColorClass(statusText)}`}>
           {statusText}
@@ -168,12 +184,12 @@ export default function ControlTower() {
         {(data?.dandoriUrl || data?.fileUrl || data?.note) && (
           <div className="flex shrink-0 gap-1.5 ml-auto items-center">
             {data.dandoriUrl && (
-              <a href={data.dandoriUrl} target="_blank" rel="noopener noreferrer" title="ダンドリワークを開く" className="hover:scale-125 hover:text-blue-700 transition-transform">
+              <a href={data.dandoriUrl} target="_blank" rel="noopener noreferrer" title="ダンドリワークを開く" onClick={(e) => e.stopPropagation()} className="hover:scale-125 hover:text-blue-700 transition-transform">
                 <LinkIcon size={12} className="text-blue-500" />
               </a>
             )}
             {data.fileUrl && (
-              <a href={data.fileUrl} target="_blank" rel="noopener noreferrer" title="添付ファイルを開く" className="hover:scale-125 hover:text-slate-600 transition-transform">
+              <a href={data.fileUrl} target="_blank" rel="noopener noreferrer" title="添付ファイルを開く" onClick={(e) => e.stopPropagation()} className="hover:scale-125 hover:text-slate-600 transition-transform">
                 <Paperclip size={12} className="text-slate-400" />
               </a>
             )}
@@ -184,23 +200,27 @@ export default function ControlTower() {
     );
   };
 
-  const renderMatrixCell = (data: SheetData | undefined, isLoading: boolean) => {
+  // 🌟 マトリクス用のセル（クリックでウィンドウを開く処理を追加）
+  const renderMatrixCell = (data: SheetData | undefined, isLoading: boolean, companyName: string, dateStr: string) => {
     if (isLoading) return <span className="text-slate-400 text-sm animate-pulse">読込中...</span>;
-    if (!data) return <span className="text-slate-300">-</span>;
+    if (!data || data.status === '-') return <span className="text-slate-300">-</span>;
     return (
-      <div className="flex flex-col items-center justify-center w-full">
-        <span className={`text-sm break-words text-center ${getStatusColorClass(data.status)}`}>
+      <div 
+        onClick={() => setSelectedEvent({ date: dateStr, company: companyName, data })}
+        className="flex flex-col items-center justify-center w-full cursor-pointer hover:bg-slate-100/80 p-1.5 rounded-lg transition-colors group"
+      >
+        <span className={`text-sm break-words text-center group-hover:text-blue-600 transition-colors ${getStatusColorClass(data.status)}`}>
           {data.status !== '-' ? data.status : ''}
         </span>
         {(data.dandoriUrl || data.fileUrl || data.note) && (
           <div className="flex flex-wrap justify-center items-center gap-2 mt-1.5">
             {data.dandoriUrl && (
-              <a href={data.dandoriUrl} target="_blank" rel="noopener noreferrer" title="ダンドリワークを開く" className="hover:scale-125 hover:text-blue-700 transition-transform p-0.5">
+              <a href={data.dandoriUrl} target="_blank" rel="noopener noreferrer" title="ダンドリワークを開く" onClick={(e) => e.stopPropagation()} className="hover:scale-125 hover:text-blue-700 transition-transform p-0.5">
                 <LinkIcon size={16} className="text-blue-500" />
               </a>
             )}
             {data.fileUrl && (
-              <a href={data.fileUrl} target="_blank" rel="noopener noreferrer" title="添付ファイルを開く" className="hover:scale-125 hover:text-slate-700 transition-transform p-0.5">
+              <a href={data.fileUrl} target="_blank" rel="noopener noreferrer" title="添付ファイルを開く" onClick={(e) => e.stopPropagation()} className="hover:scale-125 hover:text-slate-700 transition-transform p-0.5">
                 <Paperclip size={16} className="text-slate-500" />
               </a>
             )}
@@ -288,9 +308,9 @@ export default function ControlTower() {
                     </div>
                     <div className="flex-grow flex flex-col w-full gap-1 overflow-hidden">
                       {loading && <div className="text-slate-400 text-xs pl-1">読込中...</div>}
-                      {!loading && selectedCompanies.includes('hasegawa') && renderCompactCell('長谷川', hasegawaData[dateStr], 'text-blue-700', loading)}
-                      {!loading && selectedCompanies.includes('demo2') && renderCompactCell('デモ②', demo2Data[dateStr], 'text-emerald-700', loading)}
-                      {!loading && selectedCompanies.includes('demo3') && renderCompactCell('デモ③', demo3Data[dateStr], 'text-amber-700', loading)}
+                      {!loading && selectedCompanies.includes('hasegawa') && renderCompactCell('長谷川', hasegawaData[dateStr], 'text-blue-700', loading, '長谷川ガラス', dateStr)}
+                      {!loading && selectedCompanies.includes('demo2') && renderCompactCell('デモ②', demo2Data[dateStr], 'text-emerald-700', loading, 'デモ②', dateStr)}
+                      {!loading && selectedCompanies.includes('demo3') && renderCompactCell('デモ③', demo3Data[dateStr], 'text-amber-700', loading, 'デモ③', dateStr)}
                     </div>
                   </div>
                 );
@@ -315,15 +335,102 @@ export default function ControlTower() {
                     <span className="text-xs font-bold">({weekDay})</span>
                     {isHoliday && <span className="text-[10px] mt-0.5 text-center font-bold leading-tight">{holidayName}</span>}
                   </div>
-                  {selectedCompanies.includes('hasegawa') && <div className="p-3 border-r border-slate-300 flex flex-col items-center justify-center min-h-[60px]">{renderMatrixCell(hasegawaData[dateStr], loading)}</div>}
-                  {selectedCompanies.includes('demo2') && <div className="p-3 border-r border-slate-300 flex flex-col items-center justify-center min-h-[60px]">{renderMatrixCell(demo2Data[dateStr], loading)}</div>}
-                  {selectedCompanies.includes('demo3') && <div className="p-3 flex flex-col items-center justify-center min-h-[60px]">{renderMatrixCell(demo3Data[dateStr], loading)}</div>}
+                  {selectedCompanies.includes('hasegawa') && <div className="p-3 border-r border-slate-300 flex flex-col items-center justify-center min-h-[60px]">{renderMatrixCell(hasegawaData[dateStr], loading, '長谷川ガラス', dateStr)}</div>}
+                  {selectedCompanies.includes('demo2') && <div className="p-3 border-r border-slate-300 flex flex-col items-center justify-center min-h-[60px]">{renderMatrixCell(demo2Data[dateStr], loading, 'デモ②', dateStr)}</div>}
+                  {selectedCompanies.includes('demo3') && <div className="p-3 flex flex-col items-center justify-center min-h-[60px]">{renderMatrixCell(demo3Data[dateStr], loading, 'デモ③', dateStr)}</div>}
                 </div>
               ))}
             </div>
           </div>
         )}
       </div>
+
+      {/* 🌟 ポップアップウィンドウ（詳細表示モーダルUI） */}
+      {selectedEvent && (
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity"
+          onClick={() => setSelectedEvent(null)} // 背景をクリックしたら閉じる
+        >
+          <div 
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()} // ウィンドウ内でのクリックは閉じないようにする
+          >
+            {/* ヘッダー */}
+            <div className="flex justify-between items-start mb-4 border-b border-slate-100 pb-3">
+              <div>
+                <span className="text-xs font-bold text-slate-400 block mb-0.5">{selectedEvent.date}</span>
+                <h3 className="text-lg font-bold text-slate-800">{selectedEvent.company}</h3>
+              </div>
+              <button 
+                onClick={() => setSelectedEvent(null)} 
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            {/* 中身 */}
+            <div className="space-y-4">
+              {/* ステータス */}
+              <div>
+                <span className="text-xs font-bold text-slate-400 block mb-1">現在の状況</span>
+                <span className={`inline-block px-3 py-1 rounded-full text-sm bg-slate-50 border border-slate-200 ${getStatusColorClass(selectedEvent.data.status)}`}>
+                  {selectedEvent.data.status}
+                </span>
+              </div>
+
+              {/* メモ */}
+              <div>
+                <span className="text-xs font-bold text-slate-400 block mb-1">申し送り事項（メモ）</span>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-700 whitespace-pre-wrap min-h-[80px] max-h-[200px] overflow-y-auto leading-relaxed">
+                  {selectedEvent.data.note || <span className="text-slate-400 italic">記載されたメモはありません。</span>}
+                </div>
+              </div>
+
+              {/* 各種外部リンク（大きく押しやすいボタンに変身！） */}
+              {(selectedEvent.data.dandoriUrl || selectedEvent.data.fileUrl) && (
+                <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
+                  <span className="text-xs font-bold text-slate-400 block mb-0.5">関連リンク</span>
+                  
+                  {selectedEvent.data.dandoriUrl && (
+                    <a 
+                      href={selectedEvent.data.dandoriUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-100/80 font-bold py-2.5 px-4 rounded-xl border border-blue-200 transition-all text-sm shadow-sm active:scale-[0.98]"
+                    >
+                      <LinkIcon size={16} /> ダンドリワークのページを開く
+                    </a>
+                  )}
+                  
+                  {selectedEvent.data.fileUrl && (
+                    <a 
+                      href={selectedEvent.data.fileUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="flex items-center justify-center gap-2 bg-slate-50 text-slate-600 hover:bg-slate-100 font-bold py-2.5 px-4 rounded-xl border border-slate-300 transition-all text-sm shadow-sm active:scale-[0.98]"
+                    >
+                      <Paperclip size={16} /> 添付ファイル（資料・画像）を開く
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 下部閉じるボタン */}
+            <div className="mt-6 flex justify-end">
+              <button 
+                onClick={() => setSelectedEvent(null)} 
+                className="bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold py-2 px-5 rounded-xl transition-colors shadow-md"
+              >
+                閉じる
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
