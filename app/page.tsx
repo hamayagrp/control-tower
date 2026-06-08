@@ -126,10 +126,11 @@ export default function ControlTower() {
   const month = currentDate.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   
-  const listDays = Array.from({ length: daysInMonth }, (_, i) => {
+ const listDays = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
     const dateStr = `${year}/${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
     const dateObj = new Date(year, month, day);
     const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
     const holidayName = HOLIDAYS_2026[dateStr] || '';
-    return { day, weekDay: weekDays[dateObj.getDay()], dateStr, day
+    return { day, weekDay: weekDays[dateObj.getDay()], dateStr, dayOfWeek: dateObj.getDay(), isHoliday: !!holidayName, holidayName };
+  });
