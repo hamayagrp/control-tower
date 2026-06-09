@@ -1,15 +1,15 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, LayoutGrid, Calendar, Link as LinkIcon, Paperclip, MessageSquare, Lock, Check, X, Save } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, Calendar, Paperclip, MessageSquare, Lock, Check, X } from 'lucide-react';
 
 type SheetData = {
   date: string;
   status: string;
   note: string;
   fileUrl: string;
-  dandoriUrl: string;
 };
 
+// 🌟 2026年の日本の祝日データ
 const HOLIDAYS_2026: Record<string, string> = {
   '2026/01/01': '元日', '2026/01/12': '成人の日', '2026/02/11': '建国記念の日', '2026/02/23': '天皇誕生日',
   '2026/03/20': '春分の日', '2026/04/29': '昭和の日', '2026/05/03': '憲法記念日', '2026/05/04': 'みどりの日',
@@ -18,6 +18,7 @@ const HOLIDAYS_2026: Record<string, string> = {
   '2026/11/03': '文化の日', '2026/11/23': '勤労感謝の日',
 };
 
+// 🌟 ステータス文字色の判定
 const getStatusColorClass = (status: string) => {
   if (!status || status === '-') return 'text-slate-400 font-normal';
   if (status.includes('指定なし')) return 'text-blue-600 font-bold';
@@ -42,15 +43,13 @@ export default function ControlTower() {
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState(false);
 
-  // 🌟 モーダルと編集機能の状態管理
+  // 🌟 モーダルの状態管理（入力機能を削除してシンプル化）
   const [selectedEvent, setSelectedEvent] = useState<{
     date: string;
     companyId: string;
     companyName: string;
     data: SheetData;
   } | null>(null);
-  const [editDandoriUrl, setEditDandoriUrl] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const authStatus = localStorage.getItem('app_authenticated');
@@ -72,10 +71,11 @@ export default function ControlTower() {
     const formatted: Record<string, SheetData> = {};
     if (!rows || rows.length === 0) return formatted;
     rows.slice(1).forEach((row: string[]) => {
-      const [date, status, note, fileUrl, dandoriUrl] = row;
+      // E列（ダンドリワークURL）の読み込みを削除
+      const [date, status, note, fileUrl] = row;
       if (date) {
         formatted[date] = {
-          date: date || "", status: status || "-", note: note || "", fileUrl: fileUrl || "", dandoriUrl: dandoriUrl || "",
+          date: date || "", status: status || "-", note: note || "", fileUrl: fileUrl || "",
         };
       }
     });
@@ -109,45 +109,9 @@ export default function ControlTower() {
     setSelectedCompanies(prev => prev.includes(companyId) ? prev.filter(id => id !== companyId) : [...prev, companyId]);
   };
 
-  // 🌟 モーダルを開く処理
   const openModal = (dateStr: string, companyId: string, companyName: string, data: SheetData | undefined) => {
-    const safeData = data || { date: dateStr, status: '-', note: '', fileUrl: '', dandoriUrl: '' };
+    const safeData = data || { date: dateStr, status: '-', note: '', fileUrl: '' };
     setSelectedEvent({ date: dateStr, companyId, companyName, data: safeData });
-    setEditDandoriUrl(safeData.dandoriUrl); // 入力欄に今のURLをセット
-  };
-
-  // 🌟 ダンドリURLを保存する処理
-  const handleSaveUrl = async () => {
-    if (!selectedEvent) return;
-    setIsSaving(true);
-    try {
-      const res = await fetch('/api/sheets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companyId: selectedEvent.companyId,
-          date: selectedEvent.date,
-          dandoriUrl: editDandoriUrl
-        })
-      });
-
-      if (res.ok) {
-        // 保存に成功したら、画面のデータもすぐに書き換える
-        const updatedData = { ...selectedEvent.data, dandoriUrl: editDandoriUrl };
-        if (selectedEvent.companyId === 'hasegawa') setHasegawaData(prev => ({ ...prev, [selectedEvent.date]: updatedData }));
-        if (selectedEvent.companyId === 'demo2') setDemo2Data(prev => ({ ...prev, [selectedEvent.date]: updatedData }));
-        if (selectedEvent.companyId === 'demo3') setDemo3Data(prev => ({ ...prev, [selectedEvent.date]: updatedData }));
-        
-        setSelectedEvent(prev => prev ? { ...prev, data: updatedData } : null);
-        alert('ダンドリワークのURLをスプレッドシートに保存しました！');
-      } else {
-        alert('保存に失敗しました。');
-      }
-    } catch (error) {
-      alert('通信エラーが発生しました。');
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const year = currentDate.getFullYear();
@@ -194,13 +158,8 @@ export default function ControlTower() {
       >
         <span className={`font-bold shrink-0 ${colorClass}`}>[{label}]</span>
         <span className={`truncate ${getStatusColorClass(statusText)}`}>{statusText}</span>
-        {(data?.dandoriUrl || data?.fileUrl || data?.note) && (
+        {(data?.fileUrl || data?.note) && (
           <div className="flex shrink-0 gap-1.5 ml-auto items-center">
-            {data.dandoriUrl && (
-              <a href={data.dandoriUrl} target="_blank" rel="noopener noreferrer" title="ダンドリワークを開く" onClick={(e) => e.stopPropagation()} className="hover:scale-125 hover:text-blue-700 transition-transform">
-                <LinkIcon size={12} className="text-blue-500" />
-              </a>
-            )}
             {data.fileUrl && (
               <a href={data.fileUrl} target="_blank" rel="noopener noreferrer" title="添付ファイルを開く" onClick={(e) => e.stopPropagation()} className="hover:scale-125 hover:text-slate-600 transition-transform">
                 <Paperclip size={12} className="text-slate-400" />
@@ -224,13 +183,8 @@ export default function ControlTower() {
         <span className={`text-sm break-words text-center group-hover:text-blue-600 transition-colors ${getStatusColorClass(data.status)}`}>
           {data.status !== '-' ? data.status : ''}
         </span>
-        {(data.dandoriUrl || data.fileUrl || data.note) && (
+        {(data.fileUrl || data.note) && (
           <div className="flex flex-wrap justify-center items-center gap-2 mt-1.5">
-            {data.dandoriUrl && (
-              <a href={data.dandoriUrl} target="_blank" rel="noopener noreferrer" title="ダンドリワークを開く" onClick={(e) => e.stopPropagation()} className="hover:scale-125 hover:text-blue-700 transition-transform p-0.5">
-                <LinkIcon size={16} className="text-blue-500" />
-              </a>
-            )}
             {data.fileUrl && (
               <a href={data.fileUrl} target="_blank" rel="noopener noreferrer" title="添付ファイルを開く" onClick={(e) => e.stopPropagation()} className="hover:scale-125 hover:text-slate-700 transition-transform p-0.5">
                 <Paperclip size={16} className="text-slate-500" />
@@ -357,7 +311,7 @@ export default function ControlTower() {
         )}
       </div>
 
-      {/* 🌟 ポップアップウィンドウ（詳細 兼 編集画面） */}
+      {/* 🌟 ポップアップウィンドウ（ダンドリ入力を削除し、詳細表示のみにスッキリ化） */}
       {selectedEvent && (
         <div 
           className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity"
@@ -392,41 +346,6 @@ export default function ControlTower() {
                 </div>
               </div>
 
-              {/* 🌟 URL編集・登録エリア */}
-              <div className="pt-2 border-t border-slate-100">
-                <span className="text-xs font-bold text-slate-400 block mb-2 flex items-center gap-1">
-                  <LinkIcon size={12} /> ダンドリワーク URLの登録・編集
-                </span>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={editDandoriUrl}
-                    onChange={(e) => setEditDandoriUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="flex-grow bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button
-                    onClick={handleSaveUrl}
-                    disabled={isSaving}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white flex items-center gap-1.5 text-sm font-bold py-2 px-4 rounded-xl transition-colors shrink-0 shadow-sm"
-                  >
-                    <Save size={16} />
-                    {isSaving ? '保存中...' : '保存'}
-                  </button>
-                </div>
-                {/* 保存されている場合のみ「開く」ボタンを表示 */}
-                {selectedEvent.data.dandoriUrl && (
-                  <a 
-                    href={selectedEvent.data.dandoriUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="mt-3 flex items-center justify-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-100/80 font-bold py-2.5 px-4 rounded-xl border border-blue-200 transition-all text-sm shadow-sm active:scale-[0.98]"
-                  >
-                    ダンドリワークのページを開く
-                  </a>
-                )}
-              </div>
-
               {selectedEvent.data.fileUrl && (
                 <div className="pt-2 border-t border-slate-100">
                   <span className="text-xs font-bold text-slate-400 block mb-2">関連ファイル</span>
@@ -440,6 +359,15 @@ export default function ControlTower() {
                   </a>
                 </div>
               )}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button 
+                onClick={() => setSelectedEvent(null)} 
+                className="bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold py-2 px-5 rounded-xl transition-colors shadow-md"
+              >
+                閉じる
+              </button>
             </div>
           </div>
         </div>
